@@ -5,10 +5,12 @@ const app = new Hono();
 app.use("/api/*", cors());
 
 app.get("/api/posts/:slug/comments", async (c) => {
+
+  const env = c.env as Env;
   // Do something and return an HTTP response
   // Optionally, do something with `c.req.param("slug")`
   const { slug } = c.req.param();
-  const result = await c.env.SHORTIT_DB.prepare(
+  const result = await env.SHORTIT_DB.prepare(
     `
     select * from comments where post_slug = ?
 	`,
@@ -20,24 +22,42 @@ app.get("/api/posts/:slug/comments", async (c) => {
 });
 
 app.post("/api/posts/:slug/comments", async (c) => {
-  // Do something and return an HTTP response
-  // Optionally, do something with `c.req.param("slug")`
   const { slug } = c.req.param();
   const { author, body } = await c.req.json();
 
-  if (!author) return c.text("Missing author value for new comment", 400);
-  if (!body) return c.text("Missing body value for new comment", 400);
+  if (!author) return c.json({
+    success: false,
+    results: []
+  }, 400);
 
-  const { success } = await c.env.SHORTIT_DB.prepare(
-    `
-		insert into comments (author, body, post_slug) values (?, ?, ?)
-		`,
-  )
-    .bind(author, body, slug)
-    .run();
+  if (!body) return c.json({
+    success: false,
+    results: []
+  }, 400);
 
-  if (success) return c.text("Comment created", 201);
-  return c.text("Failed to create comment", 500);
+  const result = await c.env.SHORTIT_DB.prepare(`
+    insert into comments (author, body, post_slug) values (?, ?, ?)
+    returning id, author, body, post_slug
+  `)
+  .bind(author, body, slug)
+  .first();
+
+  if (result) {
+    return c.json({
+      success: true,
+      results: [{
+        id: result.id,
+        author: result.author,
+        body: result.body,
+        post_slug: result.post_slug
+      }]
+    }, 201);
+  }
+
+  return c.json({
+    success: false,
+    results: []
+  }, 500);
 });
 
 export default app;
