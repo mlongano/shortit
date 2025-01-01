@@ -30,7 +30,7 @@ app.post("/api/posts/:slug/comments", async (c) => {
 
   const { success } = await c.env.SHORTIT_DB.prepare(
     `
-		insert into comments (author, body, slug) values (?, ?, ?)
+		insert into comments (author, body, post_slug) values (?, ?, ?)
 		`,
   )
     .bind(author, body, slug)
