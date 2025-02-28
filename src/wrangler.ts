@@ -22,6 +22,7 @@ app.get("/api/posts/:slug/comments", async (c) => {
 });
 
 app.post("/api/posts/:slug/comments", async (c) => {
+  const env = c.env as Env;
   const { slug } = c.req.param();
   const { author, body } = await c.req.json();
 
@@ -35,12 +36,12 @@ app.post("/api/posts/:slug/comments", async (c) => {
     results: []
   }, 400);
 
-  const result = await c.env.SHORTIT_DB.prepare(`
+  const result = await env.SHORTIT_DB.prepare(`
     insert into comments (author, body, post_slug) values (?, ?, ?)
     returning id, author, body, post_slug
   `)
-  .bind(author, body, slug)
-  .first();
+    .bind(author, body, slug)
+    .first();
 
   if (result) {
     return c.json({
