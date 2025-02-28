@@ -4,6 +4,26 @@ import { cors } from "hono/cors";
 const app = new Hono();
 app.use("/api/*", cors());
 
+app.get("/api/test", async (c) => {
+  // Do something and return an HTTP response
+  return c.json({ message: "Hello, World!" });
+});
+
+app.get("/api/comments", async (c) => {
+
+  const env = c.env as Env;
+  // Do something and return an HTTP response
+  // Optionally, do something with `c.req.param("slug")`
+  const result = await env.SHORTIT_DB.prepare(
+    `select * from comments;`,
+  )
+    .all();
+
+  return c.json(result);
+});
+
+
+
 app.get("/api/posts/:slug/comments", async (c) => {
 
   const env = c.env as Env;
